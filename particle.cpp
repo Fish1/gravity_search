@@ -52,15 +52,20 @@ void Particle::updateVelocity(Particle & sun)
 	// Calculate the force of gravity
 	double force = (6.67408 * pow(10, -11)) * sun.getMass() * getMass();
 	// should be d^2 not d (get rid of square root)
-//	double distance = sqrt(pow(getX() - sun.getX(), 2) + pow(getY() - sun.getY(), 2));
-//	if(distance == 0)
+//	double distance = (pow(getX() - sun.getX(), 2) + pow(getY() - sun.getY(), 2));
+
+	double distance = 0;
+
+	for(unsigned int d = 0; d < m_dim; ++d)
+	{
+		distance += pow(getPosition(d) - sun.getPosition(d), 2.0);
+	}
+	
+	if(distance < 1.0)
 		//distance = DBL_EPSILON;
+		distance = 1.0;
 
-//	std::cout << force << " / " << distance << std::endl;
-//	force *= distance;
-
-// 	use this for a constance gravity force between objects
-//	force = 0.01;
+//	force /= distance;
 
 	// Get the  accleration vector
 	double delta[m_dim];
@@ -105,7 +110,7 @@ void Particle::updatePosition()
 {
 	for(unsigned int d = 0; d < m_dim; ++d)
 	{
-		m_position[d] += m_velocity[d] * 0.1;
+		m_position[d] += m_velocity[d] * MAX_MOVEMENT;
 	}
 }
 
@@ -146,6 +151,11 @@ void Particle::setPosition(const double * pos)
 void Particle::setPosition(unsigned int dim, double val)
 {
 	m_position[dim] = val;
+}
+
+const double * const Particle::getVelocity()
+{
+	return m_velocity;
 }
 
 double Particle::getMass()

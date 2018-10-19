@@ -5,10 +5,13 @@
 #include <iostream>
 
 // Fitness function
-double ofApp::function(const double * coords, unsigned int dim)
+double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
-	++m_fitnessCalls;
-	++m_eraseCounter;
+	if(count)
+	{
+		++m_fitnessCalls;
+		++m_eraseCounter;
+	}
 
 	double sum1 = 0;
 
@@ -25,12 +28,14 @@ double ofApp::function(const double * coords, unsigned int dim)
 
 	return result;
 }
-
 /*
-double ofApp::function(const double * coords, unsigned int dim)
+double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
-	++m_fitnessCalls;
-	++m_eraseCounter;
+	if(count)
+	{
+		++m_fitnessCalls;
+		++m_eraseCounter;
+	}
 
 	double sum1 = 0;
 
@@ -68,7 +73,7 @@ void ofApp::createMesh2D()
 			double coord [] = {currentX, currentZ};
 
 			// the y position of the current vertex
-			double currentY = function(coord, 2);
+			double currentY = function(coord, 2, false);
 			
 			ofVec3f point(currentX, currentY, currentZ);
 			mesh.addVertex(point);
@@ -112,102 +117,9 @@ void ofApp::createMesh2D()
 	}
 }
 
-void ofApp::createMesh3D(unsigned int exp)
+void ofApp::createMesh3D()
 {
 	mesh.clear();
-
-	double bestFitness = -DBL_MAX;
-	double worstFitness = DBL_MAX;
-
-	// size is from -8 to 8
-	const int size = DOMAIN * 2;
-	// how many vertices per 1 unit
-	const int perUnit = PER_UNIT;
-	// square root of the number of vertices
-	const int checks = perUnit * size;
-
-	// Create Verticies
-	for(int z = 0; z < checks; ++z)
-	{
-		// the z position of the current vertex
-		double currentZ = ((double)z / (double)perUnit) - ((double)size / 2.0);
-
-		for(int y = 0; y < checks; ++y)
-		{
-			double currentY = ((double)y / (double)perUnit) - ((double)size / 2.0);
-
-			for(int x = 0; x < checks; ++x)
-			{
-				// the x position of the current vertex
-				double currentX = ((double)x / (double)perUnit) - ((double)size / 2.0);
-
-				// pass in these coordinates to the fitness function to get the y position
-				double coord [] = {currentX, currentY, currentZ};
-
-				// the y position of the current vertex
-				double fitness = function(coord, 3);
-			
-				if(fitness > bestFitness)
-					bestFitness = fitness;
-
-				if(fitness < worstFitness)
-					worstFitness = fitness;
-	
-				ofVec3f point(currentX, currentY, currentZ);
-				mesh.addVertex(point);
-			}
-		}
-	}
-
-	bestFitness = bestFitness + abs(worstFitness);
-
-	// Create Colors
-	for(int z = 0; z < checks; ++z)
-	{
-		// the z position of the current vertex
-		double currentZ = ((double)z / (double)perUnit) - ((double)size / 2.0);
-
-		for(int y = 0; y < checks; ++y)
-		{
-			double currentY = ((double)y / (double)perUnit) - ((double)size / 2.0);
-
-			for(int x = 0; x < checks; ++x)
-			{
-				// the x position of the current vertex
-				double currentX = ((double)x / (double)perUnit) - ((double)size / 2.0);
-
-				// pass in these coordinates to the fitness function to get the y position
-				double coord [] = {currentX, currentY, currentZ};
-
-				// the y position of the current vertex
-				double fitness = function(coord, 3);
-	
-				fitness += abs(worstFitness);
-				
-				double closeness = fitness / bestFitness;
-	
-				closeness = pow(closeness, exp);	
-		
-				// 255 255 255   0
-				// 255 255 255 255
-	
-				double r =   0 * closeness + 255;
-				double g =   0 * closeness + 255;
-				double b =   0 * closeness + 255;
-				double a = 255 * closeness + 0;	
-				
-				mesh.addColor(ofColor(r,g,b,a));
-			}
-		}
-	}
-}
-
-void ofApp::createMesh3D_test(unsigned int exp)
-{
-	mesh.clear();
-
-	double bestFitness = -DBL_MAX;
-	double worstFitness = DBL_MAX;
 
 	// size is from -8 to 8
 	const int size = DOMAIN * 2;
@@ -226,22 +138,19 @@ void ofApp::createMesh3D_test(unsigned int exp)
 		double z = domain(gen);
 		
 		// pass in these coordinates to the fitness function to get the y position
-		double coord [] = {x, y, z};
+		// double coord [] = {x, y, z};
 
 		// the y position of the current vertex
-		double fitness = function(coord, 3);
+		// double fitness = function(coord, 3);
 	
-		if(fitness > bestFitness)
-			bestFitness = fitness;
-
-		if(fitness < worstFitness)
-			worstFitness = fitness;
-
 		ofVec3f point(x, y, z);
 		mesh.addVertex(point);
 	}
+}
 
-	bestFitness += worstFitness;
+void ofApp::colorMesh3D(unsigned int exp)
+{
+	mesh.clearColors();
 
 	auto vertices = mesh.getVertices();
 
@@ -249,27 +158,41 @@ void ofApp::createMesh3D_test(unsigned int exp)
 	{
 		double coord [] = {vert.x, vert.y, vert.z};
 
-		double fitness = function(coord, 3);
+		double fitness = function(coord, 3, false);
 
-		fitness += worstFitness;
+		// makes it 0 or above
+		if(fitness < m_worstFitness)
+			m_worstFitness = fitness;
 
-		double closeness = fitness / bestFitness;
-	
-		if(closeness >= 0.0)	
-			closeness = pow(closeness, exp);	
-		else if(closeness < 0.0)
-			closeness = 0.0;	
+		fitness += abs(m_worstFitness);
 
-		// 255   0   0 100
+		double tmpBestFitness = m_bestFitness;
+		// because we shifted the fitness up
+		// we need to shift the best fitness up
+		tmpBestFitness += abs(m_worstFitness);
+
+		double closeness = fitness / tmpBestFitness;
+
+		closeness = pow(closeness, (double)(exp));
+
+		if(exp == 1)
+		{
+			closeness = pow(closeness, 2.0);
+		}
+
+		// 255   0   0   0
 		// 255 255 255 255
 
 		double r =   0.0 * closeness + 255.0;
 		double g = 255.0 * closeness + 0.0;
 		double b = 255.0 * closeness + 0.0;
 		double a = 255.0 * closeness + 0.0;	
+		if(exp == 1)
+			a = 255.0;
 		
 		mesh.addColor(ofColor(r,g,b,a));
 	}
+
 }
 
 //--------------------------------------------------------------
@@ -290,7 +213,7 @@ void ofApp::setup()
 	else if(DIM == 3)
 	{
 		m_exp = 2;
-		createMesh3D_test(m_exp);
+		createMesh3D();
 	}
 
 
@@ -299,14 +222,14 @@ void ofApp::setup()
 	cam.setDistance(20.0f);
 
 	// Initialize the population
+	double startPosition[DIM];
+	double startVelocity[DIM];
 
 	for(unsigned int i = 0; i < POPULATION_SIZE; ++i)
 	{
-		double startPosition[DIM];
 		for(unsigned int d = 0; d < DIM; ++d)
 			startPosition[d] = domain(gen);
 
-		double startVelocity[DIM];
 		for(unsigned int d = 0; d < DIM; ++d)
 			startVelocity[d] = 0;
 
@@ -315,53 +238,40 @@ void ofApp::setup()
 		m_particles.push_back(p);
 	}
 	
-	double startPosition[DIM];
 	for(unsigned int d = 0; d < DIM; ++d)
 		startPosition[d] = domain(gen);
 	
-	double startVelocity[DIM];
 	for(unsigned int d = 0; d < DIM; ++d)
 		startVelocity[d] = 0;
 
 	m_sun = Particle(DIM, startPosition, startVelocity, SUN_MASS);
 	
-	for(unsigned int d = 0; d < DIM; ++d)
-		std::cout << m_sun.getPosition(d) << " ";
-
 	std::cout << std::endl;
 
-	// Initialize the clock
-	m_start = std::clock();
 
+	// Initialize worst and best fitness
+	m_worstFitness = DBL_MAX;	
 	m_bestFitness = -DBL_MAX;
 }
 
 //--------------------------------------------------------------
 void ofApp::update()
 {
-	//if(((std::clock() - m_start) / (double) CLOCKS_PER_SEC) < 0.0000001)
-	{
-	//	return;
-	}
-
 	++m_updateCount;
-/*
-	for(unsigned int d = 0; d < DIM; ++d)
-		std::cout << m_sun.getPosition(d) << " ";
 
-	std::cout << std::endl;*/
-
-	if(m_eraseCounter > 5000)
+	// Reset some of the particles after a while
+	if(m_eraseCounter > FITNESS_CALLS_TO_KILL)
 	{
-		m_particles.erase(m_particles.begin(), m_particles.begin() + 5);
+		m_particles.erase(m_particles.begin(), m_particles.begin() + NUMBER_TO_KILL);
 		
-		for(unsigned int i = 0; i < 5; ++i)
+		double startPosition[DIM];
+		double startVelocity[DIM];
+
+		for(unsigned int i = 0; i < NUMBER_TO_KILL; ++i)
 		{
-			double startPosition[DIM];
 			for(unsigned int d = 0; d < DIM; ++d)
 				startPosition[d] = domain(gen);
 
-			double startVelocity[DIM];
 			for(unsigned int d = 0; d < DIM; ++d)
 				startVelocity[d] = 0;
 
@@ -373,36 +283,49 @@ void ofApp::update()
 		m_eraseCounter = 0;
 	}
 
+	// wiggle the sun a bit
 	m_sun.wiggle();
-
 	if(m_sun.isOutOfBounds())
 		m_sun.revertPosition();
-
 	double fitness = function(m_sun.getPosition(), DIM);
-
 	m_sun.setCurrentFitness(fitness);
 
+	// update each particle
 	for(Particle & p : m_particles)
 	{
+		// the particle reacts to the suns gravity
 		p.updateVelocity(m_sun);
 
 		for(Particle & pa : m_particles)
 		{
 			if(&p == &pa)
 				continue;
-				
+			
+			// the particle reacts to other particles gravity	
 			p.updateVelocity(pa);
 		}
 
+		const double * prePos = p.getPosition();
 		p.updatePosition();
-
+		// if the particle has moved out of bounds, forget about it
 		if(p.isOutOfBounds())
 			continue;
-		
-		fitness = function(p.getPosition(), DIM);
+		const double * curPos = p.getPosition();
 
+		// calculate the distance the particle moved
+		double distanceMoved = 0;	
+		for(unsigned int d = 0; d < DIM; ++d)
+		{
+			distanceMoved += pow(curPos[d] - prePos[d], 2);
+		}
+		distanceMoved = sqrt(distanceMoved);
+
+		// get the particles fitness 	
+		fitness = function(p.getPosition(), DIM);
 		p.setCurrentFitness(fitness);
 
+		// if the fitness is greater than the best fitness
+		// update the best fitness and move the sun there
 		if(fitness > m_bestFitness)
 		{
 			m_bestFitness = fitness;
@@ -422,21 +345,35 @@ void ofApp::update()
 			std::cout << std::endl;
 			std::cout << "Calls: " << m_fitnessCalls << std::endl;
 			std::cout << std::endl;
+	
+			// if we are in dimension 3, recolor the mesh	
+			if(DIM == 3)
+			colorMesh3D(m_exp);
 		}
+		// if the particles fitness is greater than the suns current fitness
+		// move the sun to the particle
 		else if(fitness > m_sun.getCurrentFitness())
 		{
 			m_sun.setPosition(p.getPosition());
 			
 			m_sun.setCurrentFitness(p.getCurrentFitness());
 		}
-		
-		double fitnessDiff = m_bestFitness - fitness;
-		fitnessDiff = abs(fitnessDiff);
-		p.setMass(10000.0 - 
-			(9000.0 * (fitnessDiff / (fitnessDiff + 1))));
-	}
 
-	m_start = std::clock();
+		// find the worst fitness (for coloring the 3D mesh)
+		if(fitness < m_worstFitness)
+		{
+			m_worstFitness = fitness;
+			if(DIM == 3)
+			colorMesh3D(m_exp);
+		}
+	
+		// if the particle is at a good fitness increase its mass
+		// if the particle is at a bad fitness decrease its mass	
+		double fitnessDiff = abs(m_bestFitness - fitness);
+		fitnessDiff = abs(fitnessDiff);
+		p.setMass(MAX_PARTICLE_MASS - 
+			((MAX_PARTICLE_MASS - MIN_PARTICLE_MASS) * (fitnessDiff / (fitnessDiff + 1))));
+	}
 }
 
 //--------------------------------------------------------------
@@ -492,20 +429,25 @@ void ofApp::draw(){
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed(int key){
-
+void ofApp::keyPressed(int key)
+{
 	if(DIM == 3)
 	{
 		if(key == OF_KEY_RIGHT)
+		{
 			m_exp += 1;
+			
+			colorMesh3D(m_exp);
+		}
 		else if(key == OF_KEY_LEFT)
 		{
 			m_exp -= 1;
 			if(m_exp < 1)
 				m_exp = 1;	
+		
+			colorMesh3D(m_exp);
 		}
 			
-		createMesh3D_test(m_exp);
 	}
 }
 

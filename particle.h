@@ -42,6 +42,8 @@ public:
 
 	void setPosition(const double * pos);
 	void setPosition(unsigned int dim, double val);
+
+	const double * const getVelocity();
 	
 	double getMass();
 	

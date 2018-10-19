@@ -37,10 +37,9 @@ class ofApp : public ofBaseApp
 		std::vector<Particle> m_particles;
 
 		double m_bestFitness;
-
 		double m_bestPosition[DIM];
 
-		std::clock_t m_start;
+		double m_worstFitness;
 
 		unsigned int m_fitnessCalls = 0;
 		// eraseCounter iterates every time the fitness function is called
@@ -53,11 +52,11 @@ class ofApp : public ofBaseApp
 		std::uniform_real_distribution<double> domain;	
 
 	private:
-		double function(const double * coords, unsigned int dim);
+		double function(const double * coords, unsigned int dim, bool count);
 
 		void createMesh2D();
 
+		void createMesh3D();
 		unsigned int m_exp = 2;
-		void createMesh3D(unsigned int exp);
-		void createMesh3D_test(unsigned int exp);
+		void colorMesh3D(unsigned int exp);
 };
