@@ -5,6 +5,7 @@
 #include <iostream>
 
 // Fitness function
+/*
 double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
 	if(count)
@@ -27,8 +28,8 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 	double result = (-1.0) * sqrt(sum1) + sin(sum2);
 
 	return result;
-}
-/*
+}*/
+
 double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
 	if(count)
@@ -37,17 +38,27 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 		++m_eraseCounter;
 	}
 
-	double sum1 = 0;
-
-	for(unsigned int index = 1; index <= dim; ++index)
+	double distance = 0;
+	double tmpCoord[dim];
+	for(unsigned int d = 0; d < dim; ++d)
 	{
-		sum1 += pow(coords[index - 1], 2);
+		tmpCoord[d] = coords[d] - 1.0;
 	}
 
-	double result = sin(sqrt(sum1)) + sqrt(abs(coords[0]));
+	for(unsigned int d = 0; d < dim; ++d)
+	{
+		distance += pow(tmpCoord[d], 2.0);
+	}
 
-	return result;
-}*/
+	distance = sqrt(distance);
+	
+	double underCos = 8 * distance;
+
+	double numerator = cos(underCos);
+	double denominator = distance + 0.1;
+
+	return numerator / denominator;
+}
 
 void ofApp::createMesh2D()
 {
@@ -309,7 +320,9 @@ void ofApp::update()
 		p.updatePosition();
 		// if the particle has moved out of bounds, forget about it
 		if(p.isOutOfBounds())
+		{
 			continue;
+		}
 		const double * curPos = p.getPosition();
 
 		// calculate the distance the particle moved

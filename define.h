@@ -1,4 +1,4 @@
-#define DIM 3
+#define DIM 2
 // number of objects around the sun
 #define POPULATION_SIZE 25
 #define DOMAIN 8.0
@@ -6,7 +6,7 @@
 #define SUN_MASS 40000.0
 // if a particle is at the current best fitness it will be this size
 #define MAX_PARTICLE_MASS 2000.0
-// if a particle is at the 
+// if a particle is at the current lowest fitness it will be this size
 #define MIN_PARTICLE_MASS 200.0
 // how far the sun can wiggle
 #define WIGGLE_STEP 0.01
@@ -19,5 +19,5 @@
 
 // how many vertices to put in between a unit line
 #define PER_UNIT 3
-// render a frame after this many update cylces
+// render a frame after this many update cycles
 #define UPDATES_PER_FRAME 1
