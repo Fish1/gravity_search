@@ -5,7 +5,15 @@
 #include <iostream>
 
 // Fitness function
-/*
+
+ofApp::ofApp(unsigned int dim, unsigned int swarmSize, unsigned int killCount, 
+		double standardDeviationWiggle) : 
+	DIM(dim), m_swarmSize(swarmSize), m_killCount(killCount),
+		m_standardDeviationWiggle(standardDeviationWiggle)
+{
+
+}
+
 double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
 	if(count)
@@ -28,7 +36,7 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 	double result = (-1.0) * sqrt(sum1) + sin(sum2);
 
 	return result;
-}*/
+}
 
 /*
 double ofApp::function(const double * coords, unsigned int dim, bool count = true)
@@ -66,6 +74,7 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 }
 */
 
+/*
 double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
 	if(count)
@@ -88,13 +97,16 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 
 	return result * 0.05;
 }
+*/
 
 void ofApp::createMesh2D()
 {
+	mesh.clear();
+
 	// size is from -8 to 8
 	const int size = DOMAIN * 2;
 	// how many vertices per 1 unit
-	const int perUnit = PER_UNIT;
+	const int perUnit = m_density;
 	// square root of the number of vertices
 	const int checks = perUnit * size;
 
@@ -164,31 +176,24 @@ void ofApp::createMesh3D()
 	// size is from -8 to 8
 	const int size = DOMAIN * 2;
 	// how many vertices per 1 unit
-	const int perUnit = PER_UNIT;
+	const int perUnit = m_density;
 	// square root of the number of vertices
 	unsigned int checks = perUnit * size;
 
 	checks = pow(checks, 3);
 	
-
 	for(unsigned int index = 0; index < checks; ++index)
 	{
 		double x = domain(gen);
 		double y = domain(gen);
 		double z = domain(gen);
 		
-		// pass in these coordinates to the fitness function to get the y position
-		// double coord [] = {x, y, z};
-
-		// the y position of the current vertex
-		// double fitness = function(coord, 3);
-	
 		ofVec3f point(x, y, z);
 		mesh.addVertex(point);
 	}
 }
 
-void ofApp::colorMesh3D(unsigned int exp)
+void ofApp::colorMesh3D()
 {
 	mesh.clearColors();
 
@@ -213,9 +218,11 @@ void ofApp::colorMesh3D(unsigned int exp)
 
 		double closeness = fitness / tmpBestFitness;
 
-		closeness = pow(closeness, (double)(exp));
+		closeness = pow(closeness, (double)(m_exp));
 
-		if(exp == 1)
+		// if the exponent is 1 we still want an exponent of 2,
+		// just disable alpha blending
+		if(m_exp == 1)
 		{
 			closeness = pow(closeness, 2.0);
 		}
@@ -227,7 +234,8 @@ void ofApp::colorMesh3D(unsigned int exp)
 		double g = 255.0 * closeness + 0.0;
 		double b = 255.0 * closeness + 0.0;
 		double a = 255.0 * closeness + 0.0;	
-		if(exp == 1)
+		// if the exponent is 1 then don't do alpha
+		if(m_exp == 1)
 			a = 255.0;
 		
 		mesh.addColor(ofColor(r,g,b,a));
@@ -241,7 +249,6 @@ void ofApp::setup()
 	ofEnableDepthTest();
 	ofEnableAlphaBlending();
 	ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-	// only reset the background when i tell it too
 	ofSetBackgroundAuto(false);
 
 	domain = std::uniform_real_distribution<double>(-DOMAIN, DOMAIN);
@@ -253,9 +260,10 @@ void ofApp::setup()
 	else if(DIM == 3)
 	{
 		m_exp = 2;
+		m_density = 3;
 		createMesh3D();
+		colorMesh3D();
 	}
-
 
 	// Initialize the camera closer to our graph
 	cam.setTarget(glm::vec3(0.0f,-5.0f,0.0f));
@@ -265,7 +273,7 @@ void ofApp::setup()
 	double startPosition[DIM];
 	double startVelocity[DIM];
 
-	for(unsigned int i = 0; i < POPULATION_SIZE; ++i)
+	for(unsigned int i = 0; i < m_swarmSize; ++i)
 	{
 		for(unsigned int d = 0; d < DIM; ++d)
 			startPosition[d] = domain(gen);
@@ -273,7 +281,8 @@ void ofApp::setup()
 		for(unsigned int d = 0; d < DIM; ++d)
 			startVelocity[d] = 0;
 
-		Particle p(DIM, startPosition, startVelocity, 1000.0);
+		Particle * p = new Particle(DIM, startPosition, startVelocity, 1000.0,
+			m_standardDeviationWiggle);
 
 		m_particles.push_back(p);
 	}
@@ -284,7 +293,8 @@ void ofApp::setup()
 	for(unsigned int d = 0; d < DIM; ++d)
 		startVelocity[d] = 0;
 
-	m_sun = Particle(DIM, startPosition, startVelocity, SUN_MASS);
+	m_sun = new Particle(DIM, startPosition, startVelocity, SUN_MASS,
+		m_standardDeviationWiggle);
 	
 	std::cout << std::endl;
 
@@ -292,6 +302,8 @@ void ofApp::setup()
 	// Initialize worst and best fitness
 	m_worstFitness = DBL_MAX;	
 	m_bestFitness = -DBL_MAX;
+	
+	m_bestPosition = new double[DIM];
 }
 
 //--------------------------------------------------------------
@@ -302,12 +314,17 @@ void ofApp::update()
 	// Reset some of the particles after a while
 	if(m_eraseCounter > FITNESS_CALLS_TO_KILL)
 	{
-		m_particles.erase(m_particles.begin(), m_particles.begin() + NUMBER_TO_KILL);
+		for(unsigned int index = 0; index < m_killCount; ++index)
+		{
+			delete m_particles[index];
+		}
+
+		m_particles.erase(m_particles.begin(), m_particles.begin() + m_killCount);
 		
 		double startPosition[DIM];
 		double startVelocity[DIM];
 
-		for(unsigned int i = 0; i < NUMBER_TO_KILL; ++i)
+		for(unsigned int i = 0; i < m_killCount; ++i)
 		{
 			for(unsigned int d = 0; d < DIM; ++d)
 				startPosition[d] = domain(gen);
@@ -315,7 +332,8 @@ void ofApp::update()
 			for(unsigned int d = 0; d < DIM; ++d)
 				startVelocity[d] = 0;
 
-			Particle p(DIM, startPosition, startVelocity, 1000.0);
+			Particle * p = new Particle(DIM, startPosition, startVelocity, 1000.0,
+				m_standardDeviationWiggle);
 
 			m_particles.push_back(p);
 		}
@@ -324,35 +342,37 @@ void ofApp::update()
 	}
 
 	// wiggle the sun a bit
-	m_sun.wiggle();
-	if(m_sun.isOutOfBounds())
-		m_sun.revertPosition();
-	double fitness = function(m_sun.getPosition(), DIM);
-	m_sun.setCurrentFitness(fitness);
+	m_sun->wiggle();
+	if(m_sun->isOutOfBounds())
+		m_sun->revertPosition();
+	double fitness = function(m_sun->getPosition(), DIM);
+	m_sun->setCurrentFitness(fitness);
 
 	// update each particle
-	for(Particle & p : m_particles)
+	for(Particle * p : m_particles)
 	{
 		// the particle reacts to the suns gravity
-		p.updateVelocity(m_sun);
+		p->updateVelocity(*m_sun);
 
-		for(Particle & pa : m_particles)
+		for(Particle * pa : m_particles)
 		{
-			if(&p == &pa)
+			if(p == pa)
+			{
 				continue;
+			}
 			
 			// the particle reacts to other particles gravity	
-			p.updateVelocity(pa);
+			p->updateVelocity(*pa);
 		}
 
-		const double * prePos = p.getPosition();
-		p.updatePosition();
+		const double * prePos = p->getPosition();
+		p->updatePosition();
 		// if the particle has moved out of bounds, forget about it
-		if(p.isOutOfBounds())
+		if(p->isOutOfBounds())
 		{
 			continue;
 		}
-		const double * curPos = p.getPosition();
+		const double * curPos = p->getPosition();
 
 		// calculate the distance the particle moved
 		double distanceMoved = 0;	
@@ -363,8 +383,8 @@ void ofApp::update()
 		distanceMoved = sqrt(distanceMoved);
 
 		// get the particles fitness 	
-		fitness = function(p.getPosition(), DIM);
-		p.setCurrentFitness(fitness);
+		fitness = function(p->getPosition(), DIM);
+		p->setCurrentFitness(fitness);
 
 		// if the fitness is greater than the best fitness
 		// update the best fitness and move the sun there
@@ -373,11 +393,13 @@ void ofApp::update()
 			m_bestFitness = fitness;
 
 			for(unsigned int d = 0; d < DIM; ++d)
-				m_bestPosition[d] = p.getPosition(d);
+			{
+				m_bestPosition[d] = p->getPosition(d);
+			}
 
-			m_sun.setPosition(m_bestPosition);
+			m_sun->setPosition(m_bestPosition);
 			
-			m_sun.setCurrentFitness(m_bestFitness);
+			m_sun->setCurrentFitness(m_bestFitness);
 
 			std::cout << "Fitness: " << m_bestFitness << std::endl;
 			for(unsigned int d = 0; d < DIM; ++d)
@@ -390,15 +412,17 @@ void ofApp::update()
 	
 			// if we are in dimension 3, recolor the mesh	
 			if(DIM == 3)
-			colorMesh3D(m_exp);
+			{
+				colorMesh3D();
+			}
 		}
 		// if the particles fitness is greater than the suns current fitness
 		// move the sun to the particle
-		else if(fitness > m_sun.getCurrentFitness())
+		else if(fitness > m_sun->getCurrentFitness())
 		{
-			m_sun.setPosition(p.getPosition());
+			m_sun->setPosition(p->getPosition());
 			
-			m_sun.setCurrentFitness(p.getCurrentFitness());
+			m_sun->setCurrentFitness(p->getCurrentFitness());
 		}
 
 		// find the worst fitness (for coloring the 3D mesh)
@@ -406,14 +430,16 @@ void ofApp::update()
 		{
 			m_worstFitness = fitness;
 			if(DIM == 3)
-			colorMesh3D(m_exp);
+			{
+				colorMesh3D();
+			}
 		}
 	
 		// if the particle is at a good fitness increase its mass
 		// if the particle is at a bad fitness decrease its mass	
 		double fitnessDiff = abs(m_bestFitness - fitness);
 		fitnessDiff = abs(fitnessDiff);
-		p.setMass(MAX_PARTICLE_MASS - 
+		p->setMass(MAX_PARTICLE_MASS - 
 			((MAX_PARTICLE_MASS - MIN_PARTICLE_MASS) * (fitnessDiff / (fitnessDiff + 1))));
 	}
 }
@@ -450,12 +476,12 @@ void ofApp::draw(){
 		ofDrawSphere(m_bestPosition[0], m_bestFitness, m_bestPosition[1], 0.2);
 
 		ofSetColor(255,255,0);
-		ofDrawSphere(m_sun.getPosition(0), m_sun.getCurrentFitness(), m_sun.getPosition(1), 0.3);
+		ofDrawSphere(m_sun->getPosition(0), m_sun->getCurrentFitness(), m_sun->getPosition(1), 0.3);
 
 		ofSetColor(255,0,0);
-		for(Particle & p : m_particles)
+		for(Particle * p : m_particles)
 		{
-			ofDrawSphere(p.getPosition(0), p.getCurrentFitness(), p.getPosition(1), 0.1);
+			ofDrawSphere(p->getPosition(0), p->getCurrentFitness(), p->getPosition(1), 0.1);
 		}
 	}
 	else if(DIM == 3)
@@ -464,12 +490,12 @@ void ofApp::draw(){
 		ofDrawSphere(m_bestPosition[0], m_bestPosition[1], m_bestPosition[2], 0.2);
 
 		ofSetColor(255,255,0);
-		ofDrawSphere(m_sun.getPosition(0), m_sun.getPosition(1), m_sun.getPosition(2), 0.3);
+		ofDrawSphere(m_sun->getPosition(0), m_sun->getPosition(1), m_sun->getPosition(2), 0.3);
 		
 		ofSetColor(255,0,0);
-		for(Particle & p : m_particles)
+		for(Particle * p : m_particles)
 		{
-			ofDrawSphere(p.getPosition(0), p.getPosition(1), p.getPosition(2), 0.1);
+			ofDrawSphere(p->getPosition(0), p->getPosition(1), p->getPosition(2), 0.1);
 		}
 	}
 
@@ -479,23 +505,61 @@ void ofApp::draw(){
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key)
 {
-	if(DIM == 3)
+	if(key == OF_KEY_CONTROL)
 	{
-		if(key == OF_KEY_RIGHT)
+		createMesh3D();	
+		colorMesh3D();
+	}
+
+	if(key == OF_KEY_RIGHT)
+	{
+		if(DIM == 3)
 		{
 			m_exp += 1;
-			
-			colorMesh3D(m_exp);
+			colorMesh3D();
 		}
-		else if(key == OF_KEY_LEFT)
+	}
+	else if(key == OF_KEY_LEFT)
+	{
+		if(DIM == 3)
 		{
 			m_exp -= 1;
-			if(m_exp < 1)
+			if(m_exp == 0)
 				m_exp = 1;	
 		
-			colorMesh3D(m_exp);
+			colorMesh3D();
 		}
-			
+	}
+
+	if(key == OF_KEY_UP)
+	{
+		m_density += 1;
+	
+		if(DIM == 3)
+		{	
+			createMesh3D();
+			colorMesh3D();
+		}
+		else if(DIM == 2)
+		{
+			createMesh2D();
+		}
+	}	
+	else if(key == OF_KEY_DOWN)
+	{
+		m_density -= 1;
+		if(m_density == 0)
+			m_density = 1;
+	
+		if(DIM == 3)
+		{	
+			createMesh3D();
+			colorMesh3D();
+		}
+		else if(DIM == 2)
+		{
+			createMesh2D();
+		}
 	}
 }
 

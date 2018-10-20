@@ -7,12 +7,12 @@
 class Particle
 {
 private:
-	static const unsigned int m_dim = DIM;
+	unsigned int m_dim;
 	
-	double m_position[DIM];
-	double m_previousPosition[DIM];
+	double * m_position = nullptr;
+	double * m_previousPosition = nullptr;
 
-	double m_velocity[DIM];
+	double * m_velocity = nullptr;
 
 	double m_mass;
 
@@ -20,12 +20,14 @@ private:
 	double m_currentFitness;
 	
 	std::default_random_engine gen;
-	std::uniform_real_distribution<double> dist;
+	std::normal_distribution<double> dist;
+
+private: 
+	Particle();
 
 public:
-
-	Particle();
-	Particle(unsigned int dim, double * position, double * velocity, double mass);
+	Particle(unsigned int dim, double * position, double * velocity, double mass, double stdWiggle);
+	~Particle();
 
 	void setCurrentFitness(double fitness);
 	double getCurrentFitness();

@@ -8,15 +8,19 @@
 
 #include <iostream>
 
-Particle::Particle() :
-	m_bestFitness(-DBL_MAX), dist(-WIGGLE_STEP, WIGGLE_STEP)
+Particle::Particle()
 {
+
 }
 
-Particle::Particle(unsigned int dim, double * position, double * velocity, double mass) :
-	m_mass(mass), m_bestFitness(-DBL_MAX),
-	m_currentFitness(-DBL_MAX), dist(-WIGGLE_STEP, WIGGLE_STEP)
+Particle::Particle(unsigned int dim, double * position, double * velocity, double mass, double stdWiggle) :
+	m_dim(dim), m_mass(mass), m_bestFitness(-DBL_MAX),
+	m_currentFitness(-DBL_MAX), dist(0, stdWiggle)
 {
+	m_position = new double[dim];
+	m_previousPosition = new double[dim];
+	m_velocity = new double[dim];
+
 	for(unsigned int d = 0; d < m_dim; ++d)
 	{
 		m_position[d] = position[d];
@@ -24,7 +28,27 @@ Particle::Particle(unsigned int dim, double * position, double * velocity, doubl
 	}
 
 	for(unsigned int d = 0; d < m_dim; ++d)
+	{
 		m_velocity[d] = velocity[d];
+	}
+}
+
+Particle::~Particle()
+{
+	if(m_position)
+	{
+		delete m_position;	
+	}
+
+	if(m_previousPosition)
+	{
+		delete m_previousPosition;
+	}
+	
+	if(m_velocity)
+	{
+		delete m_velocity;
+	}
 }
 
 void Particle::setCurrentFitness(double fitness)
