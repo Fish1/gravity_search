@@ -30,6 +30,7 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 	return result;
 }*/
 
+/*
 double ofApp::function(const double * coords, unsigned int dim, bool count = true)
 {
 	if(count)
@@ -38,26 +39,54 @@ double ofApp::function(const double * coords, unsigned int dim, bool count = tru
 		++m_eraseCounter;
 	}
 
-	double distance = 0;
-	double tmpCoord[dim];
+	double a = 0;
 	for(unsigned int d = 0; d < dim; ++d)
 	{
-		tmpCoord[d] = coords[d] - 1.0;
+		a += coords[d];
 	}
+	a = pow(abs(a), 1.0/1001.0);
 
+	double b = 0;
 	for(unsigned int d = 0; d < dim; ++d)
 	{
-		distance += pow(tmpCoord[d], 2.0);
+		b += 5.6 * coords[d] * pow(2, d);
 	}
+	b = cos(b);
 
-	distance = sqrt(distance);
+	double c = 0;
+	for(unsigned int d = 0; d < dim; ++d)
+	{
+		c += coords[d] * pow(3, d);
+	}
+	c = sin(c);
+
+	double den = (a*b*c) + 1.4;
+
+	return 1 / den;
+}
+*/
+
+double ofApp::function(const double * coords, unsigned int dim, bool count = true)
+{
+	if(count)
+	{
+		++m_fitnessCalls;
+		++m_eraseCounter;
+	}
 	
-	double underCos = 8 * distance;
 
-	double numerator = cos(underCos);
-	double denominator = distance + 0.1;
+	double result = 0;
+	
+	for(unsigned int d = 0; d < dim; ++d)
+	{
+		double a = sqrt(abs(coords[d]));
+		double b = -4 * pow(coords[d], 2.0);
+		double c = 5 * coords[d];
 
-	return numerator / denominator;
+		result -= (a + b + c);
+	}
+
+	return result * 0.05;
 }
 
 void ofApp::createMesh2D()
@@ -417,24 +446,30 @@ void ofApp::draw(){
 
 	if(DIM == 2)
 	{
+		ofSetColor(0,255,0);
+		ofDrawSphere(m_bestPosition[0], m_bestFitness, m_bestPosition[1], 0.2);
+
 		ofSetColor(255,255,0);
 		ofDrawSphere(m_sun.getPosition(0), m_sun.getCurrentFitness(), m_sun.getPosition(1), 0.3);
 
 		ofSetColor(255,0,0);
 		for(Particle & p : m_particles)
 		{
-			ofDrawSphere(p.getPosition(0), p.getCurrentFitness(), p.getPosition(1), 0.2);
+			ofDrawSphere(p.getPosition(0), p.getCurrentFitness(), p.getPosition(1), 0.1);
 		}
 	}
 	else if(DIM == 3)
 	{
+		ofSetColor(0,255,0);
+		ofDrawSphere(m_bestPosition[0], m_bestPosition[1], m_bestPosition[2], 0.2);
+
 		ofSetColor(255,255,0);
 		ofDrawSphere(m_sun.getPosition(0), m_sun.getPosition(1), m_sun.getPosition(2), 0.3);
 		
 		ofSetColor(255,0,0);
 		for(Particle & p : m_particles)
 		{
-			ofDrawSphere(p.getPosition(0), p.getPosition(1), p.getPosition(2), 0.2);
+			ofDrawSphere(p.getPosition(0), p.getPosition(1), p.getPosition(2), 0.1);
 		}
 	}
 
