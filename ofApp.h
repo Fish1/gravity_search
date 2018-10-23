@@ -13,6 +13,7 @@ class ofApp : public ofBaseApp
 {
 
 	public:
+
 		ofApp(unsigned int dim, unsigned int swarmSize, unsigned int killCount,
 			 double standardDeviationWiggle);
 		void setup();
@@ -32,8 +33,10 @@ class ofApp : public ofBaseApp
 		void gotMessage(ofMessage msg);
 
 	private:
+
 		ofEasyCam cam;
 		ofVboMesh mesh;
+		ofVboMesh meshBox;
 
 		const unsigned int DIM;
 		const unsigned int m_swarmSize;

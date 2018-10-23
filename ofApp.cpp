@@ -191,6 +191,29 @@ void ofApp::createMesh3D()
 		ofVec3f point(x, y, z);
 		mesh.addVertex(point);
 	}
+
+	meshBox.clear();
+
+	meshBox.addVertex(ofVec3f(0,0,0));
+	meshBox.addColor(ofColor(255,255,255,255));
+
+	meshBox.addVertex(ofVec3f(DOMAIN + 1,0,0));
+	meshBox.addColor(ofColor(255,0,0,255));
+
+	meshBox.addVertex(ofVec3f(0,DOMAIN + 1,0));
+	meshBox.addColor(ofColor(0,255,0,255));
+
+	meshBox.addVertex(ofVec3f(0,0,DOMAIN + 1));
+	meshBox.addColor(ofColor(0,0,255,255));
+
+	meshBox.addIndex(0);
+	meshBox.addIndex(1);
+	meshBox.addIndex(0);
+	meshBox.addIndex(2);
+	meshBox.addIndex(0);
+	meshBox.addIndex(3);
+	meshBox.addIndex(0);
+	meshBox.addIndex(0);
 }
 
 void ofApp::colorMesh3D()
@@ -468,6 +491,10 @@ void ofApp::draw(){
 		ofSetColor(255,255,255);
 		mesh.drawVertices();
 		mesh.disableColors();
+
+		ofSetColor(0,255,0);	
+		meshBox.enableColors();
+		meshBox.drawWireframe();
 	}
 
 	if(DIM == 2)
